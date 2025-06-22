@@ -124,7 +124,7 @@ function Popup() {
             const overlays = (window as any).ReactSync_getCurrentOverlayStates?.();
             console.log(overlays);
             if (overlays) {
-              setInStorage({ overlays });
+              chrome.storage.local.set({ overlays });
             }
           },
         });

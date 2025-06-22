@@ -1,11 +1,6 @@
 console.log("🧠 Parent page content script active for Netflix");
 // Listen for video ID requests from the iframe
 
-/*const script = document.createElement('script');
-script.src = chrome.runtime.getURL('overlay.js');
-script.type = 'module';
-document.documentElement.appendChild(script);*/
-
 window.addEventListener("message", (event) => {
     if (event.data?.type === "request-video-id") {
       sendVideoDataToChild();
