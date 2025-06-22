@@ -1,0 +1,212 @@
+.container {
+  padding: 1em;
+  width: 340px;
+  background-color: #202124;
+  color: #e8eaed;
+  font-family: Inter, sans-serif;
+  border-radius: 12px;
+  border: 1px solid #303134;
+  box-shadow: 0 0 12px rgba(102, 255, 153, 0.1);
+}
+
+.tabRow {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #444;
+}
+
+.collapsible {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.open {
+  max-height: 150px; /* Adjust this to fit your join UI */
+}
+
+.tabButton {
+  padding: 0.6rem 1rem;
+  background: #222;
+  color: #ccc;
+  border: 1px solid #444;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  position: relative;
+  top: 0; /* ⬅ remove spacing nudge */
+  margin-bottom: -1px; /* ⬅ align flush with .tabContent */
+  transition: background 0.2s, color 0.2s;
+}
+
+.tabButton:hover {
+  background: #2d2d2d;
+  color: #eee;
+}
+
+.tabContent {
+  border: 1px solid #444;
+  border-top: none; /* ⬅ prevent double-border with active tab */
+  border-radius: 0 0 6px 6px;
+  padding: 1rem;
+  background: #1a1a1a;
+  margin-top: 0; /* ⬅ remove unnecessary offset */
+}
+
+.activeTab {
+  background: #1a1a1a; /* Match .tabContent */
+  color: #fff;
+  font-weight: bolder;
+  border-color: #444;
+  z-index: 2;
+}
+
+.header {
+  text-align: center;
+  color: #66ff99;
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.roomRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.readOnlyInput {
+  background-color: #222;
+  color: #ccc;
+  border: none;
+  pointer-events: none;
+}
+
+.roomId {
+  padding: 2px 6px;
+  background-color: #2a2d2e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e8eaed;
+  font-family: Inter, sans-serif;
+  font-size: 0.9em;
+}
+
+.copyButton {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  background-color: #444;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.copyButton:hover {
+  background-color: #666;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.feedback {
+  margin-bottom: 1em;
+  padding: 0.6em;
+  background-color: #1fe374;
+  color: #000;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.input {
+  width: 100%;
+  border-radius: 6px;
+  padding: 0.5em;
+  background: #2a2d2e;
+  border: 1px solid #444;
+  color: #f0f0f0;
+  margin-top: 0.3em;
+}
+
+.button {
+  background-color: #a1f2c6;
+  color: #000;
+  border: none;
+  padding: 0.65em 1em;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-top: 0.5em;
+  width: 100%;
+  cursor: pointer;
+}
+
+.button:hover {
+  background-color: #7debb0;
+}
+
+.toggleWrapper {
+  margin-bottom: 1em;
+}
+
+.toggleLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle {
+  position: relative;
+  width: 60px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 999px;
+  transition: background-color 0.3s;
+}
+
+.on {
+  background-color: #84e1ba;
+}
+
+.off {
+  background-color: #888;
+}
+
+.thumb {
+  position: absolute;
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: left 0.3s;
+}
+
+.toggleText {
+  position: absolute;
+  top: 6px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #1a1a1a;
+  pointer-events: none;
+  transition: left 0.3s;
+}
+
+.hiddenInput {
+  display: none;
+}

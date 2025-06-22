@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reactr Twitch Auth</title>
+  <script>
+    window.onload = async () => {
+      const hash = window.location.hash;
+      const token = new URLSearchParams(hash.slice(1)).get('access_token');
+      const clientId = 'xinffyk5hdbpq703z2cy53aip278sh'; // Replace with your actual Twitch app client ID
+
+      if (!token) {
+        document.body.innerText = '❌ Failed to get access token from Twitch.';
+        return;
+      }
+
+      try {
+        const res = await fetch('https://api.twitch.tv/helix/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Client-Id': clientId,
+          }
+        });
+
+        const data = await res.json();
+        const user = data.data?.[0];
+        if (!user) throw new Error('Twitch user not found.');
+
+        const twitchUsername = user.login;
+        const displayName = user.display_name;
+
+        // ✅ Save to Chrome extension local storage
+        if (chrome?.storage?.local) {
+          chrome.storage.local.set({ twitchUsername }, () => {
+            alert(`✅ Linked as ${displayName}`);
+            window.close(); // Close the popup after success
+          });
+        } else {
+          document.body.innerText = `✅ Linked as ${displayName}`;
+        }
+      } catch (err) {
+        console.error('OAuth error:', err);
+        document.body.innerText = '❌ Twitch login failed. Check console for details.';
+      }
+    };
+  </script>
+</head>
+<body>
+  <p>🔄 Connecting to Twitch...</p>
+</body>
+</html>

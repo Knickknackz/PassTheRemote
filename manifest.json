@@ -1,0 +1,65 @@
+{
+  "manifest_version": 3,
+  "name": "ReactR – Sync Reactions for Twitch + Netflix",
+  "version": "1.0",
+  "description": "Overlay Twitch streams and synced chat onto Netflix or Crunchyroll watch pages with a single click.",
+  "permissions": [
+    "identity",
+    "tabs",
+    "scripting",
+    "storage",
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.crunchyroll.com/*"],
+      "js": ["crunchyrollParentPage.js"],
+      "run_at": "document_idle",
+      "all_frames": false,
+      "type": "module"
+    },
+    {
+      "matches": ["https://static.crunchyroll.com/*"],
+      "js": ["crunchyroll.js"],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "type": "module"
+    },
+    {
+      "matches": ["https://www.crunchyroll.com/*","*://*.netflix.com/*"],
+      "js": ["overlay.js"],
+      "all_frames": false,
+      "type": "module"
+    },
+    {
+      "matches": ["*://*.netflix.com/*"],
+      "js": ["netflix.js"],
+      "run_at": "document_idle",
+      "all_frames": false,
+      "type": "module"
+    },
+    {
+      "matches": ["*://*.twitch.tv/*"],
+      "js": ["twitch.js"],
+      "all_frames": false,
+      "type": "module"
+    }
+  ],
+  "host_permissions": [
+    "https://*.crunchyroll.com/*",
+    "https://*.netflix.com/*",
+    "https://*.twitch.tv/*"
+  ],
+  "action": {
+    "default_popup": "popup/index.html"
+  },
+  "background": {
+    "service_worker": "background.js" ,
+    "type": "module"
+  },
+  "web_accessible_resources": [
+  {
+    "resources": ["overlay.js","twitch.js","src/rooms/index.html"],
+    "matches": ["<all_urls>"]
+  }]
+}

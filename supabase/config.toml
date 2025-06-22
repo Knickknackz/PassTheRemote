@@ -1,0 +1,22 @@
+
+[functions.twitch-auth-callback]
+enabled = true
+verify_jwt = true
+import_map = "./functions/twitch-auth-callback/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/twitch-auth-callback/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/twitch-auth-callback/*.html" ]
+
+[functions.get-live-status]
+enabled = true
+verify_jwt = true
+import_map = "./functions/get-live-status/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/get-live-status/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/get-live-status/*.html" ]

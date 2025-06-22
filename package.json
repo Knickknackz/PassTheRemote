@@ -1,0 +1,39 @@
+{
+  "name": "reactr-extension",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "prebuild": "rimraf dist",
+    "build:core": "vite build",
+    "build:overlay": "vite build --config vite.overlay.config.ts",
+    "build:twitch": "vite build --config vite.twitch.config.ts",
+    "build:netflix": "vite build --config vite.netflix.config.ts",
+    "build:copy": "cp netflix-dist/netflix.js dist/netflix.js && cp twitch-dist/twitch.js dist/twitch.js && cp overlay-dist/overlay.js dist/overlay.js && cp manifest.json dist/",
+    "build": "run-s build:core build:overlay build:twitch build:netflix build:copy",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "nanoid": "^5.1.5",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@types/chrome": "^0.0.323",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.5.0",
+    "eslint": "^9.25.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^5.0.10",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.30.1",
+    "vite": "^4.5.14"
+  }
+}
