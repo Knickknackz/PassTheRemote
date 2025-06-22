@@ -1,3 +1,4 @@
+//Random Line
 /*console.log("✅ Crunchyroll:ReactSync content script loaded on: " + location.hostname);
 
 if (!location.hostname.includes("static.crunchyroll.com")) {
