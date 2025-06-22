@@ -1,4 +1,5 @@
 // src/lib/twitchAuth.ts
+import { getFromStorage, setInStorage } from './storage'; 
 
 const clientId = 'cyp0e7eayowkqtbjji4fjqtiwg2qz0';
 const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
@@ -6,9 +7,7 @@ const scope = 'user:read:email user:read:follows';
 const supabaseUrl = 'https://gzloumyomschdfkyqwed.supabase.co/functions/v1/';
 
 export async function handleTwitchLogin(showFeedback: (msg: string) => void): Promise<string | null> {
-  const { user_id } = await new Promise<{ user_id: string }>((resolve) =>
-    chrome.storage.local.get(['user_id'], resolve)
-  );
+  const { user_id } = await getFromStorage('user_id');
 
   const authUrl = `https://id.twitch.tv/oauth2/authorize` +
     `?response_type=code` +
@@ -51,7 +50,7 @@ export async function handleTwitchLogin(showFeedback: (msg: string) => void): Pr
       if (response.ok) {
         const data = await response.json();
 
-        chrome.storage.local.set({
+        await setInStorage({
           twitchUsername: data.twitch_username,
           twitchAccessToken: data.access_token,
           twitchRefreshToken: data.refresh_token,
@@ -70,55 +69,55 @@ export async function handleTwitchLogin(showFeedback: (msg: string) => void): Pr
 }
 
 export async function getValidTwitchAccessToken(): Promise<string | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get([
-      'twitchAccessToken',
-      'twitchRefreshToken',
-      'twitchTokenExpiresAt',
-    ], async (result) => {
-      const {
-        twitchAccessToken,
-        twitchRefreshToken,
-        twitchTokenExpiresAt,
-      } = result;
+  const {
+    twitchAccessToken,
+    twitchRefreshToken,
+    twitchTokenExpiresAt,
+  } = await getFromStorage<{
+    twitchAccessToken?: string;
+    twitchRefreshToken?: string;
+    twitchTokenExpiresAt?: number;
+  }>([
+    'twitchAccessToken',
+    'twitchRefreshToken',
+    'twitchTokenExpiresAt',
+  ]);
 
-      if (!twitchAccessToken || !twitchRefreshToken || !twitchTokenExpiresAt) {
-        return resolve(null);
-      }
+  if (!twitchAccessToken || !twitchRefreshToken || !twitchTokenExpiresAt) {
+    return null;
+  }
 
-      if (Date.now() < twitchTokenExpiresAt - 60000) {
-        return resolve(twitchAccessToken);
-      }
+  if (Date.now() < twitchTokenExpiresAt - 60000) {
+    return twitchAccessToken;
+  }
 
-      try {
-        const res = await fetch(supabaseUrl + 'refresh-twitch-token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-extension-auth': 'reactr-ftw-82364',
-          },
-          body: JSON.stringify({ refresh_token: twitchRefreshToken }),
-        });
-
-        if (!res.ok) {
-          console.error('❌ Failed to refresh Twitch token:', await res.text());
-          return resolve(null);
-        }
-
-        const data = await res.json();
-
-        chrome.storage.local.set({
-          twitchAccessToken: data.access_token,
-          twitchTokenExpiresAt: data.token_expires_at,
-        });
-
-        return resolve(data.access_token);
-      } catch (err) {
-        console.error('❌ Error refreshing Twitch token:', err);
-        return resolve(null);
-      }
+  try {
+    const res = await fetch(supabaseUrl + 'refresh-twitch-token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-extension-auth': 'reactr-ftw-82364',
+      },
+      body: JSON.stringify({ refresh_token: twitchRefreshToken }),
     });
-  });
+
+    if (!res.ok) {
+      console.error('❌ Failed to refresh Twitch token:', await res.text());
+      return null;
+    }
+
+    const data = await res.json();
+
+    await setInStorage({
+      twitchAccessToken: data.access_token,
+      twitchTokenExpiresAt: data.token_expires_at,
+    });
+
+    return data.access_token;
+  } catch (err) {
+    console.error('❌ Error refreshing Twitch token:', err);
+    return null;
+  }
 }
 
 export async function fetchLiveTwitchUsers(twitchUserIds: string[]): Promise<string[]> {

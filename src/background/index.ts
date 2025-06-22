@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getFromStorage, removeFromStorage } from '../lib/storage';
 
 // 🛠 Supabase config
 const supabaseUrl = 'https://gzloumyomschdfkyqwed.supabase.co';
@@ -8,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 let channel: ReturnType<typeof supabase.channel> | null = null;
 const registeredTabIds = new Set<number>();
 
-// 🔁 OLD Broadcast helper
+// 🔁 Broadcast helper
 function broadcastToAllTabs(message: any) {
   for (const tabId of registeredTabIds) {
     chrome.tabs.sendMessage(tabId, message, () => {
@@ -18,33 +19,6 @@ function broadcastToAllTabs(message: any) {
       }
     });
   }
-}
-
-// 📦 Read roomId from chrome.storage
-function getRoomIdFromStorage(): Promise<string | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['roomId'], (result) => {
-      resolve(result.roomId ?? null);
-    });
-  });
-}
-
-// 📦 Read userId from chrome.storage
-function getUserIdFromStorage(): Promise<string> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['user_id'], (result) => {
-      resolve(result.user_id ?? 'null_user');
-    });
-  });
-}
-
-// 📦 Read Role from chrome.storage
-function getRoleFromStorage(): Promise<string | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['role'], (result) => {
-      resolve(result.role ?? null);
-    });
-  });
 }
 
 // 🚀 Subscribe to updates for a room
@@ -64,7 +38,7 @@ async function resubscribeToRoom(roomId: string) {
   const throttleDelay = 500;  
 
 
-  const userId = await getUserIdFromStorage();
+  const {userId} = await getFromStorage<{ userId: string }>('user_id');
 
   channel = supabase.channel(`room-${roomId}`, {
     config: { presence: { key: userId  } }
@@ -112,15 +86,15 @@ async function resubscribeToRoom(roomId: string) {
       const deletedRoomId = payload.old.room_id;
     
       // Only notify tabs if this user was in that room
-      getRoomIdFromStorage().then((roomId) => {
+      getFromStorage<{ roomId: string }>('roomId').then(({ roomId }) => {
         if (roomId === deletedRoomId) {
-          chrome.storage.local.remove(['roomId','role','videoId','provider']);
+          removeFromStorage(['roomId','role','videoId','provider']);
           broadcastToAllTabs({ type: 'room-closed', roomId });
         }
       });
     })
     .on('presence', { event: 'sync' }, () => {
-      getRoleFromStorage().then((role) => {
+      getFromStorage<{ role: string }>('role').then(({ role }) => {
         if (role !== 'host' || !channel) return;
         const now = Date.now();
         if (now - lastRun >= throttleDelay) {
@@ -144,7 +118,7 @@ async function resubscribeToRoom(roomId: string) {
 
 // 📝 Push playback updates from host to Supabase
 async function updateRoomPlayback(playState: string, currentTime: number, videoId: string, provider: string, episode_title: string, show_title: string, episode_number: string) {
-  const roomId = await getRoomIdFromStorage();
+  const { roomId } = await getFromStorage<{ roomId: string }>('roomId');
   if (!roomId) {
     console.log('no room id, Room Playback Failed');
     return;
@@ -182,7 +156,7 @@ function init() {
   });
 
   // Boot channel on startup
-  getRoomIdFromStorage().then((roomId) => {
+  getFromStorage<{ roomId: string }>('roomId').then(({ roomId }) => {
     if (roomId) {
       resubscribeToRoom(roomId).catch(console.error);
     }
@@ -194,7 +168,7 @@ function init() {
     if (message.type === 'register-content' && sender.tab?.id) {
       registeredTabIds.add(sender.tab.id);
       console.log("✅ Registered tab:", sender.tab.id);
-      getRoomIdFromStorage().then((roomId) => {
+      getFromStorage<{ roomId: string }>('roomId').then(({ roomId }) => {
         if(!roomId){ 
           return;
         }
@@ -209,7 +183,7 @@ function init() {
               type: 'room-closed',
               roomId: roomId,
             });
-            chrome.storage.local.remove(['roomId','role','videoId','provider']);
+            removeFromStorage(['roomId','role','videoId','provider']);
             console.log('Invalid Room, Probably Delteted, Clearing Local Values');
             return;
           }

@@ -5,6 +5,7 @@ import { supabase } from '../src/lib/supabaseClient';
 import { nanoid } from 'nanoid';
 import styles from './popup.module.css';
 import { handleTwitchLogin } from '../src/lib/twitchAuth';
+import { getFromStorage, setInStorage, removeFromStorage } from '../src/lib/storage';
 
 function Popup() {
   const [streamOpacity, setStreamOpacity] = useState(1);
@@ -36,7 +37,7 @@ function Popup() {
     const newVal = !isUnlocked;
     setIsUnlocked(newVal);
     setEnableUnlock(newVal);
-    chrome.storage.local.set({ unlocked: newVal });//Overlay Listens for this Change to Reflect it
+    setInStorage({ unlocked: newVal });
 
     if(!newVal){
       saveOverlayPositions();
@@ -77,8 +78,7 @@ function Popup() {
     const newVal = !useCustomLayout;
     setUseCustomLayout(newVal);
     setEnableUnlock(newVal && isUnlocked);
-
-    chrome.storage.local.set({ customLayout: newVal });
+    setInStorage({ customLayout: newVal });
   };
 
   const toggleChatVisibility = () => {
@@ -86,12 +86,12 @@ function Popup() {
 
     const newVal = !showChat;
     setShowChat(newVal);
-    chrome.storage.local.set({ showChat: newVal });
+    setInStorage({ showChat: newVal });
   };
 
   function updateChannel(channelId: string) {
     setChannelId(channelId.trim());
-    chrome.storage.local.set({ channelId: channelId.trim() });
+    setInStorage({ channelId: channelId.trim() });
   }
 
   const toggleStreamerVisibility = () => {
@@ -99,7 +99,7 @@ function Popup() {
 
     const newVal = !showStreamer;
     setShowStreamer(newVal);
-    chrome.storage.local.set({ showStreamer: newVal });
+    setInStorage({ showStreamer: newVal });
   };
 
   const updateOpacity = (target: 'stream' | 'chat', value: number) => {
@@ -107,12 +107,12 @@ function Popup() {
     const storageKey = target === 'stream' ? 'streamOpacity' : 'chatOpacity';
 
     setter(value);
-    chrome.storage.local.set({ [storageKey]: value });
+    setInStorage({ [storageKey]: value });
   };
 
   const setVisibility = (newVal : boolean) => {
     setIsVisible(newVal);
-    chrome.storage.local.set({ visible: newVal });
+    setInStorage({ visible: newVal });
   }
 
   const saveOverlayPositions= () =>{
@@ -124,7 +124,7 @@ function Popup() {
             const overlays = (window as any).ReactSync_getCurrentOverlayStates?.();
             console.log(overlays);
             if (overlays) {
-              chrome.storage.local.set({ overlays });
+              setInStorage({ overlays });
             }
           },
         });
@@ -134,46 +134,65 @@ function Popup() {
   }
 
   useEffect(() => {
-    chrome.storage.local.get(['twitchUsername', 'role', 'channelId', 'showStreamer', 'showChat','customLayout','unlocked','visible','user_id','roomId','streamOpacity','chatOpacity'], (result) => {
-      console.log('custom layout ' + !!result.customLayout);
-      const channel = result.channelId || '';
-      const unlocked = !!result.unlocked;
-      const visible = !!result.visible;
-      const roomId = result.roomId || '';
-      const streamOpacity = result.streamOpacity ?? 1;
-      const chatOpacity = result.chatOpacity ?? 1;
-      const customLayout = !!result.customLayout;
-      const twitchUsername = result.twitchUsername || '';
-      setIsHost(result.role === 'host');
-      setChannelId(channel);
-      setShowChat(!!result.showChat);
-      setShowStreamer(!!result.showStreamer);
-      setIsUnlocked(unlocked);
-      setUseCustomLayout(customLayout);
-      setEnableUnlock(customLayout ? unlocked : customLayout);
-      setIsVisible(visible);
+    (async () => {
+      const {
+        twitchUsername = '',
+        role,
+        channelId = '',
+        showStreamer,
+        showChat,
+        customLayout,
+        unlocked,
+        visible,
+        user_id,
+        roomId = '',
+        streamOpacity = 1,
+        chatOpacity = 1
+      } = await getFromStorage<{
+        twitchUsername?: string;
+        role?: string;
+        channelId?: string;
+        showStreamer?: boolean;
+        showChat?: boolean;
+        customLayout?: boolean;
+        unlocked?: boolean;
+        visible?: boolean;
+        user_id?: string;
+        roomId?: string;
+        streamOpacity?: number;
+        chatOpacity?: number;
+      }>([
+        'twitchUsername', 'role', 'channelId', 'showStreamer', 'showChat',
+        'customLayout', 'unlocked', 'visible', 'user_id', 'roomId',
+        'streamOpacity', 'chatOpacity'
+      ]);
+
+      console.log('custom layout', !!customLayout);
+
+      setIsHost(role === 'host');
+      setChannelId(channelId);
+      setShowChat(!!showChat);
+      setShowStreamer(!!showStreamer);
+      setIsUnlocked(!!unlocked);
+      setUseCustomLayout(!!customLayout);
+      setEnableUnlock(customLayout ? !!unlocked : !!customLayout);
+      setIsVisible(!!visible);
       setJoinRoomId(roomId);
       setStreamOpacity(streamOpacity);
       setChatOpacity(chatOpacity);
       setLinkedTwitchUsername(twitchUsername);
 
-      //Pull userId or generate new one if null
-      console.log(result.user_id);
-      if (!result.user_id) {
+      if (!user_id) {
         const newId = crypto.randomUUID();
-        chrome.storage.local.set({ user_id: newId });
+        await setInStorage({ user_id: newId });
         console.log(newId);
       }
-    });
+    })();
   }, []);
 
-  const getFromStorage = (keys: string[]) =>
-    new Promise<{ [key: string]: any }>((resolve) =>
-      chrome.storage.local.get(keys, resolve)
-    );
 
-  const handleLeaveRoom = () => {
-    chrome.storage.local.remove(['roomId', 'role','videoId','provider']);
+  const handleLeaveRoom = async () => {
+    await removeFromStorage(['roomId', 'role','videoId','provider']);
     setJoinRoomId('');
     setIsHost(false);
     showFeedback('👋 Left the room!');
@@ -194,7 +213,7 @@ function Popup() {
       return;
     }
     // Clear local storage
-    chrome.storage.local.remove(['roomId', 'role','videoId','provider']);
+    await removeFromStorage(['roomId', 'role','videoId','provider']);
     setJoinRoomId('');
     setIsHost(false);
     if(!isLinking) showFeedback('❌ Room closed!');
@@ -253,7 +272,7 @@ function Popup() {
 
   const sendHostUpdate = async (checked) => {
     setIsHost(checked);
-    chrome.storage.local.set({ role: checked ? 'host' : 'audience' });
+    await setInStorage({ role: checked ? 'host' : 'audience' });
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
@@ -299,7 +318,7 @@ function Popup() {
     }
 
     if(role == 'host' && oldRoomId) await handleCloseRoom();
-    chrome.storage.local.set({ roomId: roomId, role: 'host'});
+    await setInStorage({ roomId: roomId, role: 'host'});
     setVisibility(false);
     setJoinRoomId(roomId);
     sendHostUpdate(true);//tells other components that "i'm a host now"
@@ -363,7 +382,7 @@ function Popup() {
     const { user_id } = await getFromStorage(['user_id']);
     const role = data.host_id === user_id ? 'host' : 'audience';
 
-    chrome.storage.local.set({ roomId, role, videoId: data.video_id, provider: data.provider, visible: true, channelId: data.streamer_username });
+    await setInStorage({ roomId, role, videoId: data.video_id, provider: data.provider, visible: true, channelId: data.streamer_username });
     setJoinRoomId(roomId);
     setVisibility(true);
     setIsHost(role === 'host');
@@ -440,28 +459,25 @@ function Popup() {
   );
 
   async function handleTwitchUnlink(showFeedback: (msg: string) => void) {
-    if(linkedTwitchUsername){
+    if (linkedTwitchUsername) {
       const { error } = await supabase
-      .from('twitch_users')
-      .delete()
-      .eq('twitch_username', linkedTwitchUsername);
+        .from('twitch_users')
+        .delete()
+        .eq('twitch_username', linkedTwitchUsername);
 
       if (error) {
         showFeedback('⚠️ Twitch deletion failed:' + error.message);
       } else {
-        await new Promise<void>((resolve) => {
-          chrome.storage.local.remove([
-            'twitchUsername',
-            'twitchAccessToken',
-            'twitchRefreshToken',
-            'twitchTokenExpiresAt',
-          ], () => {
-            setLinkedTwitchUsername('');
-            handleCloseRoom();
-            showFeedback('❌ Twitch account unlinked');
-            resolve();
-          });
-        });
+        await removeFromStorage([
+          'twitchUsername',
+          'twitchAccessToken',
+          'twitchRefreshToken',
+          'twitchTokenExpiresAt',
+        ]);
+
+        setLinkedTwitchUsername('');
+        handleCloseRoom();
+        showFeedback('❌ Twitch account unlinked');
       }
     }
   }

@@ -4,11 +4,8 @@ import { createRoot } from 'react-dom/client';
 import { supabase } from '../lib/supabaseClient';
 import './rooms.css'; // <-- Add the styles from below
 import { fetchShowMetadata } from '../lib/showMetadata';
+import { getFromStorage, setInStorage } from '../lib/storage'; 
 
-const getFromStorage = (keys: string[]) =>
-  new Promise<{ [key: string]: any }>((resolve) =>
-    chrome.storage.local.get(keys, resolve)
-  );
 
 function getVideoUrl(provider: string, video_id: string, current_time: number): string | null {
   const t = Math.floor(current_time || 0);
@@ -157,84 +154,82 @@ function RecommendedRoomsPage() {
   const [showLiveOnly, setShowLiveOnly] = useState(false);
   const [platformFilters, setPlatformFilters] = useState<string[]>(['netflix', 'crunchyroll']);
 
-  useEffect(() => {
-    const fetchRooms = async () => {
-      // Load filters
-      chrome.storage.local.get(['showLiveOnly', 'platformFilters'], (result) => {
-        if (typeof result.showLiveOnly === 'boolean') setShowLiveOnly(result.showLiveOnly);
-        if (Array.isArray(result.platformFilters)) setPlatformFilters(result.platformFilters);
-      });
+useEffect(() => {
+  const fetchRooms = async () => {
+    const {
+      showLiveOnly,
+      platformFilters
+    } = await getFromStorage<{
+      showLiveOnly?: boolean;
+      platformFilters?: string[];
+    }>(['showLiveOnly', 'platformFilters']);
 
-      const { data, error } = await supabase
-        .from('reactr_rooms')
-        .select(`
-          host_id,
-          room_id,
-          provider,
-          video_id,
-          current_time,
-          streamer_username,
-          twitch_user_id,
-          twitch_users (profile_image_url, display_name),
-          show_title,
-          episode_title,
-          episode_number
-        `)
-        .order('updated_at', { ascending: false })
-        .limit(20);
+    if (typeof showLiveOnly === 'boolean') setShowLiveOnly(showLiveOnly);
+    if (Array.isArray(platformFilters)) setPlatformFilters(platformFilters);
 
-      if (!data || error) return;
+    const { data, error } = await supabase
+      .from('reactr_rooms')
+      .select(`
+        host_id,
+        room_id,
+        provider,
+        video_id,
+        current_time,
+        streamer_username,
+        twitch_user_id,
+        twitch_users (profile_image_url, display_name),
+        show_title,
+        episode_title,
+        episode_number
+      `)
+      .order('updated_at', { ascending: false })
+      .limit(20);
 
-      // Collect unique Twitch user IDs
-      const twitchIds = data.map(r => r.twitch_user_id).filter(Boolean);
+    if (!data || error) return;
 
-      // Fetch enriched stream metadata from your Edge Function
-      const liveRes = await fetch('https://gzloumyomschdfkyqwed.supabase.co/functions/v1/get-live-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-extension-auth': 'reactr-ftw-82364',
-        },
-        body: JSON.stringify({ twitch_user_ids: twitchIds }),
-      });
-      
-      const { live_streams } = await liveRes.json();
+    const twitchIds = data.map(r => r.twitch_user_id).filter(Boolean);
 
-      // Create a Map to quickly lookup stream data by twitch_user_id
-      const liveMap = new Map(
-        (live_streams || []).map((stream: any) => [stream.twitch_user_id, stream])
-      );
+    const liveRes = await fetch('https://gzloumyomschdfkyqwed.supabase.co/functions/v1/get-live-status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-extension-auth': 'reactr-ftw-82364',
+      },
+      body: JSON.stringify({ twitch_user_ids: twitchIds }),
+    });
 
-      // Merge Twitch stream data into room list
-      const enrichedRooms = await Promise.all(
-        data.map(async (room) => {
-          if (!room.show_title) return room;
+    const { live_streams } = await liveRes.json();
+    const liveMap = new Map((live_streams || []).map((stream: any) => [stream.twitch_user_id, stream]));
 
-          const meta = await fetchShowMetadata(room.show_title);
-          const stream = liveMap.get(room.twitch_user_id);
+    const enrichedRooms = await Promise.all(
+      data.map(async (room) => {
+        if (!room.show_title) return room;
 
-          return {
-            ...room,
-            provider: room.provider ? room.provider.charAt(0).toUpperCase() + room.provider.slice(1) : '',
-            isLive: !!stream,
-            title: stream?.title || null,
-            thumbnail_url: stream?.thumbnail_url || null,
-            viewer_count: stream?.viewer_count || null,
-            tags: stream?.tags || [],
-            is_mature: stream?.is_mature || false,
-            preview_hover: false,
-            metadata: meta
-          };
-        })
-      );
+        const meta = await fetchShowMetadata(room.show_title);
+        const stream = liveMap.get(room.twitch_user_id);
 
-      // Optional: sort live rooms to top
-      enrichedRooms.sort((a, b) => (b.isLive ? 1 : 0) - (a.isLive ? 1 : 0));
-      setRooms(enrichedRooms);
-    };
+        return {
+          ...room,
+          provider: room.provider ? room.provider.charAt(0).toUpperCase() + room.provider.slice(1) : '',
+          isLive: !!stream,
+          title: stream?.title || null,
+          thumbnail_url: stream?.thumbnail_url || null,
+          viewer_count: stream?.viewer_count || null,
+          tags: stream?.tags || [],
+          is_mature: stream?.is_mature || false,
+          preview_hover: false,
+          metadata: meta,
+        };
+      })
+    );
 
-    fetchRooms();
-  }, []);
+    enrichedRooms.sort((a, b) => (b.isLive ? 1 : 0) - (a.isLive ? 1 : 0));
+    setRooms(enrichedRooms);
+  };
+
+  fetchRooms();
+}, []);
+
 
 
   const joinRoom = async (room: any) => {
@@ -244,7 +239,7 @@ function RecommendedRoomsPage() {
     const { user_id } = await getFromStorage(['user_id']);
     const role = room.host_id === user_id ? 'host' : 'audience';
 
-    chrome.storage.local.set({
+    await setInStorage({
       roomId,
       role,
       videoId: room.video_id,
@@ -261,7 +256,7 @@ function RecommendedRoomsPage() {
   const toggleLiveOnly = () => {
     setShowLiveOnly((prev) => {
       const next = !prev;
-      chrome.storage.local.set({ showLiveOnly: next });
+      setInStorage({ showLiveOnly: next });
       return next;
     });
   };
@@ -271,7 +266,7 @@ function RecommendedRoomsPage() {
       const next = prev.includes(platform)
         ? prev.filter((p) => p !== platform)
         : [...prev, platform];
-      chrome.storage.local.set({ platformFilters: next });
+      setInStorage({ platformFilters: next });
       return next;
     });
   };

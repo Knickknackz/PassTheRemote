@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { getFromStorage } from '../lib/storage';
 import HostTimeStatus from './HostTimeStatus';
 import React from 'react';
 
@@ -144,24 +145,32 @@ function DraggableResizable({ customLayout, unlocked, iframeSrc, title }: { cust
   }, [unlocked, customLayout]);
 
   useEffect(() => {
-    chrome.storage.local.get(['overlays', 'streamOpacity', 'chatOpacity'], (result) => {
-      const key = title === 'Twitch Chat' ? 'chat' : 'stream';
-      const saved = result.overlays?.[key];
-      const stored = title === 'Twitch Chat' ? result.chatOpacity : result.streamOpacity;
-      console.log(saved);
-      console.log('saved');
-      if (saved) {
-        setPosition({ x: saved.x, y: saved.y });
-        setSize({
-          width: saved.width,
-          height: saved.height
-        });
-      }
+    (async () => {const {overlays,streamOpacity,chatOpacity
+        } = await getFromStorage<{
+          overlays?: Record<string, any>;
+          streamOpacity?: number;
+          chatOpacity?: number;
+        }>(['overlays', 'streamOpacity', 'chatOpacity']);
 
-      if (typeof stored === 'number') {
-        setOpacity(stored);
-      }
-    });
+        const key = title === 'Twitch Chat' ? 'chat' : 'stream';
+        const saved = overlays?.[key];
+        const stored = title === 'Twitch Chat' ? chatOpacity : streamOpacity;
+
+        console.log(saved);
+        console.log('saved');
+
+        if (saved) {
+          setPosition({ x: saved.x, y: saved.y });
+          setSize({
+            width: saved.width,
+            height: saved.height
+          });
+        }
+
+        if (typeof stored === 'number') {
+          setOpacity(stored);
+        }
+      })();
 
     const handleOpacityChange = (changes: any, areaName: string) => {
       if (areaName !== 'local') return;
@@ -324,23 +333,32 @@ function Overlay() {
       }
     };
 
-    chrome.storage.local.get(
-      [
-        'overlays', 'channelId', 'showStreamer', 'showChat', 'unlocked',
-        'visible', 'customLayout', 'videoId', 'role', 'roomId'
-      ],
-      (result) => {
-        setChannel(result.channelId);
-        setShowChat(!!result.showChat);
-        setShowStreamer(!!result.showStreamer);
-        setIsUnlocked(!!result.unlocked);
-        setUseCustomLayout(!!result.customLayout);
-        setIsVisible(!!result.visible);
-        setIsHost(result.role === 'host');
-        setRoomId(result.roomId);
-        checkUrl(result.videoId); // ✅ use local value
-      }
-    );
+    (async () => {const { channelId, showStreamer, showChat, unlocked, visible, customLayout, videoId, role, roomId} 
+    = await getFromStorage<{
+        channelId?: string;
+        showStreamer?: boolean;
+        showChat?: boolean;
+        unlocked?: boolean;
+        visible?: boolean;
+        customLayout?: boolean;
+        videoId?: string;
+        role?: string;
+        roomId?: string;
+      }>([
+        'channelId', 'showStreamer', 'showChat', 'unlocked', 'visible',
+        'customLayout', 'videoId', 'role', 'roomId'
+      ]);
+
+      setChannel(channelId || '');
+      setShowChat(!!showChat);
+      setShowStreamer(!!showStreamer);
+      setIsUnlocked(!!unlocked);
+      setUseCustomLayout(!!customLayout);
+      setIsVisible(!!visible);
+      setIsHost(role === 'host');
+      setRoomId(roomId || '');
+      checkUrl(videoId || '');
+    })();
 
     const handleStorageChangeInOverlay = (changes: any, areaName: string) => {
       if (areaName !== 'local') return;
@@ -365,7 +383,7 @@ function Overlay() {
       if (location.href !== lastUrl) {
         console.log('Overlay Change Detected');
         lastUrl = location.href;
-        chrome.storage.local.get(['videoId'], ({ videoId }) => checkUrl(videoId));
+        getFromStorage<{ videoId: string }>(['videoId']).then(({ videoId }) => checkUrl(videoId));
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });

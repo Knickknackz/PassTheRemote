@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { getFromStorage, setInStorage } from '../lib/storage'; 
 
 let currentRoomId: string | undefined = undefined;
 let currentRole: string | undefined = undefined;
@@ -94,10 +95,6 @@ function showReactrBanner(room: {
   }
 }
 
-function getFromStorage<T>(keys: string[]): Promise<T> {
-  return new Promise(resolve => chrome.storage.local.get(keys, resolve));
-}
-
 async function switchToRoom(newRoomId: string, twitchUsername: string, videoId : string, provider: string) {
   //Was there to prevent duplicates. Likely unreachable now
   if (currentRole === 'host' && currentRoomId && (newRoomId !== currentRoomId)) {
@@ -107,7 +104,7 @@ async function switchToRoom(newRoomId: string, twitchUsername: string, videoId :
   //Currently Unneeded. Only necessary if we want hosts to swap rooms.
   //const newRole = (currentRole === 'host' && newRoomId === currentRoomId) ? 'host' : 'audience';
 
-  await chrome.storage.local.set({
+  await setInStorage({
     roomId: newRoomId,
     role: 'audience',
     channelId: twitchUsername,

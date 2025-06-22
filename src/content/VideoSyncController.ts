@@ -1,4 +1,5 @@
 // src/shared/VideoSyncController.ts
+import { getFromStorage, setInStorage} from '../lib/storage'; 
 
 export type Role = 'host' | 'audience';
 
@@ -76,7 +77,8 @@ export class VideoSyncController {
 
   async init() {
     this.config.onInit?.();
-    this.userRole = await this.loadUserRole();
+    const { role } = await getFromStorage('role');
+    this.userRole = (role === 'host' ? 'host' : 'audience');
     this.videoId = this.config.getVideoId();
     await this.tryFindVideo();
   }
@@ -188,7 +190,7 @@ export class VideoSyncController {
           console.log('New State', msg);
           if(this.userRole === 'host'){
             if(msg.video_id && this.config.getVideoId() !== msg.video_id){
-              chrome.storage.local.set({videoId: msg.video_id});
+              setInStorage({videoId: msg.video_id});
             } 
             console.log('User is Host, Ignoring Command'); 
             return;
@@ -197,7 +199,7 @@ export class VideoSyncController {
           if ((this.config.getVideoId() !== msg.video_id || this.config.getProviderId() !== msg.provider) &&
               this.userRole === 'audience' && msg.video_id != null && msg.video_id !== 'debug') 
           {
-            chrome.storage.local.set({ videoId: msg.video_id, provider: msg.provider });
+            setInStorage({ videoId: msg.video_id, provider: msg.provider });
             const targetTime = msg.state == 'playing' ? this.getTimeWithDelta(msg.time, msg.updated_at) : msg.time;
             this.config.onSyncMismatch?.(this.getRedirectUrl(msg.video_id, targetTime, msg.provider));
             sendResponse?.();
@@ -233,14 +235,6 @@ export class VideoSyncController {
 
     chrome.runtime.onMessage.addListener(handler);
     this.currentMessageHandler = handler;
-  }
-
-  protected async loadUserRole(): Promise<Role> {
-    return new Promise((resolve) => {
-      chrome.storage.local.get('role', ({ role }) => {
-        resolve(role === 'host' ? 'host' : 'audience');
-      });
-    });
   }
 
   protected registerIfNeeded() {
