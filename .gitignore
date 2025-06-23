@@ -14,6 +14,7 @@ node_modules/
 dist/
 dist-ssr/
 overlay-dist/
+crunchyroll-dist/
 netflix-dist/
 twitch-dist/
 *.zip

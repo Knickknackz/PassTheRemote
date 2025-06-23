@@ -4,14 +4,14 @@ import { resolve } from 'path';
 export default defineConfig({
   build: {
     rollupOptions: {
-      input: resolve(__dirname, 'src/content/twitch.tsx'),
+      input: resolve(__dirname, 'src/content/crunchyroll.ts'),
       output: {
-        entryFileNames: 'twitch.js',
+        entryFileNames: 'crunchyroll.js',
         inlineDynamicImports: true,  // ✅ Single file output
         manualChunks: undefined
       }
     },
-    outDir: 'twitch-dist',
+    outDir: 'crunchyroll-dist',
     emptyOutDir: true  // so it doesn’t erase your main build
   }
 });

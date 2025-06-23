@@ -10,8 +10,9 @@
     "build:overlay": "vite build --config vite.overlay.config.ts",
     "build:twitch": "vite build --config vite.twitch.config.ts",
     "build:netflix": "vite build --config vite.netflix.config.ts",
-    "build:copy": "cp netflix-dist/netflix.js dist/netflix.js && cp twitch-dist/twitch.js dist/twitch.js && cp overlay-dist/overlay.js dist/overlay.js && cp manifest.json dist/",
-    "build": "run-s build:core build:overlay build:twitch build:netflix build:copy",
+    "build:crunchyroll": "vite build --config vite.crunchyroll.config.ts",
+    "build:copy": "cp netflix-dist/netflix.js dist/netflix.js && cp twitch-dist/twitch.js dist/twitch.js && cp overlay-dist/overlay.js dist/overlay.js && cp manifest.json dist/ && cp crunchyroll-dist/crunchyroll.js dist/crunchyroll.js",
+    "build": "run-s build:core build:overlay build:twitch build:netflix build:crunchyroll build:copy",
     "preview": "vite preview"
   },
   "dependencies": {

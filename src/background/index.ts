@@ -62,7 +62,7 @@ async function resubscribeToRoom(roomId: string) {
       }
 
       const session = payload.new;
-      console.log('🗃 DB update:', session);
+      console.log('🗃 DB update BROADCASTED:', session);
       broadcastToAllTabs({
         type: 'sync-update',
         state: session.play_state,
@@ -92,8 +92,7 @@ async function resubscribeToRoom(roomId: string) {
           broadcastToAllTabs({ type: 'room-closed', roomId });
         }
       });
-    })
-    .on('presence', { event: 'sync' }, () => {
+    }).on('presence', { event: 'sync' }, () => {
       getFromStorage<{ role: string }>('role').then(({ role }) => {
         if (role !== 'host' || !channel) return;
         const now = Date.now();
@@ -107,7 +106,7 @@ async function resubscribeToRoom(roomId: string) {
         }
       });
     });
-
+    
 
   await channel.subscribe((status) => {
     console.log(`📶 Supabase channel status: ${status}`);
