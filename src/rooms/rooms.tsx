@@ -189,11 +189,11 @@ useEffect(() => {
 
     const twitchIds = data.map(r => r.twitch_user_id).filter(Boolean);
 
-    const liveRes = await fetch('https://gzloumyomschdfkyqwed.supabase.co/functions/v1/get-live-status', {
+    const liveRes = await fetch(import.meta.env.VITE_SUPABASE_URL + '/functions/v1/get-live-status', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-extension-auth': 'reactr-ftw-82364',
+        'x-extension-auth': import.meta.env.VITE_REACTR_EXTENSION_SECRET,
       },
       body: JSON.stringify({ twitch_user_ids: twitchIds }),
     });

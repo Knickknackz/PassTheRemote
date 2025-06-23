@@ -16,11 +16,11 @@ export async function fetchShowMetadata(title: string) {
   }
 
   // Step 2: Fetch from Edge Function
-  const res = await fetch('https://gzloumyomschdfkyqwed.supabase.co/functions/v1/get-show-metadata', {
+  const res = await fetch(import.meta.env.VITE_SUPABASE_URL + '/functions/v1/get-show-metadata', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-extension-auth': 'reactr-ftw-82364'
+      'x-extension-auth': import.meta.env.VITE_REACTR_EXTENSION_SECRET
     },
     body: JSON.stringify({ title })
   });

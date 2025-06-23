@@ -1,10 +1,10 @@
 // src/lib/twitchAuth.ts
 import { getFromStorage, setInStorage } from './storage'; 
 
-const clientId = 'cyp0e7eayowkqtbjji4fjqtiwg2qz0';
+const clientId = import.meta.env.VITE_TWITCH_CLIENT_ID;
 const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
 const scope = 'user:read:email user:read:follows';
-const supabaseUrl = 'https://gzloumyomschdfkyqwed.supabase.co/functions/v1/';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL + '/functions/v1/';
 
 export async function handleTwitchLogin(showFeedback: (msg: string) => void): Promise<string | null> {
   const { user_id } = await getFromStorage('user_id');
@@ -42,7 +42,7 @@ export async function handleTwitchLogin(showFeedback: (msg: string) => void): Pr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-extension-auth': 'reactr-ftw-82364',
+          'x-extension-auth': import.meta.env.VITE_REACTR_EXTENSION_SECRET,
         },
         body: JSON.stringify({ code, state }),
       });
@@ -96,7 +96,7 @@ export async function getValidTwitchAccessToken(): Promise<string | null> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-extension-auth': 'reactr-ftw-82364',
+        'x-extension-auth': import.meta.env.VITE_REACTR_EXTENSION_SECRET,
       },
       body: JSON.stringify({ refresh_token: twitchRefreshToken }),
     });
@@ -127,7 +127,7 @@ export async function fetchLiveTwitchUsers(twitchUserIds: string[]): Promise<str
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-extension-auth': 'reactr-ftw-82364', // Replace or import securely
+      'x-extension-auth': import.meta.env.VITE_REACTR_EXTENSION_SECRET, // Replace or import securely
     },
     body: JSON.stringify({ twitch_user_ids: twitchUserIds }),
   });
