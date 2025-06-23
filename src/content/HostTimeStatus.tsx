@@ -91,12 +91,3 @@ export default function HostTimeStatus({ isVisible }: { isVisible : boolean;}) {
     </div>
   );
 }
-/*
-If i want to add video info:
-      {(hostState.title || hostState.episode) && (
-        <div style={{ marginTop: '0.25rem' }}>
-          {hostState.title && <strong>{hostState.title}</strong>}
-          {hostState.episode && ` – ${hostState.episode}`}
-        </div>
-      )}
-*/

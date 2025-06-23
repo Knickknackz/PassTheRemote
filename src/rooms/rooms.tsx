@@ -37,9 +37,6 @@ function RoomCard({ room, joinRoom }: { room: any; joinRoom: (room: any) => void
       {thumb && (
         <div
           className="previewWrapper"
-          //Can remove related variables/functions if we remove this. Temp commenting for now
-          /*onMouseEnter={() => setPreviewHovered(true)}
-          onMouseLeave={() => setPreviewHovered(false)}*/
         >
           <img src={thumb} alt="preview" title={`Watch ${room.twitch_users?.display_name || room.streamer_username || 'Anonymous'} on Twitch!`} className="thumbnail" />
           {room.isLive && <span className="liveBadge">LIVE</span>}
