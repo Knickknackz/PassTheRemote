@@ -19,7 +19,8 @@
     "@supabase/supabase-js": "^2.49.4",
     "nanoid": "^5.1.5",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "streaming-availability": "^4.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

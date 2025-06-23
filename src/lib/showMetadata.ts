@@ -37,8 +37,9 @@ export async function fetchShowMetadata(title: string) {
         posters: meta.posters, // 👈 add this
         expires_at: meta.expires_at,
         availability_by_platform: meta.availability_by_platform,
-        platform_streams: meta.platform_streams
-      }, { onConflict: ['title', 'year'] });
+        platform_streams: meta.platform_streams,
+        imdb_id: meta.imdb_id // 👈 use snake_case for DB consistency
+      }, { onConflict: 'imdb_id' });
 
     if (insertError) console.error('❌ Failed to cache metadata:', insertError.message);
 

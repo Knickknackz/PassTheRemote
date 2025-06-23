@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "streaming-availability": "https://esm.sh/streaming-availability@4.4.0",
+    "streaming-availability/": "https://esm.sh/streaming-availability@4.4.0/"
+  }
+}
