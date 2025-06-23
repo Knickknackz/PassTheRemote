@@ -90,7 +90,7 @@ serve(async (req) => {
         found: true,
         title: result.title,
         overview: result.overview,
-        year: result.firstAirYear,
+        year: result.firstAirYear ?? 9999, // Use 9999 if year is null/undefined
         genres: result.genres?.map((g: any) => g.name),
         posters: {
             vertical: result.imageSet?.verticalPoster || {},
@@ -211,4 +211,10 @@ serve(async (req) => {
           quality: "sd",
           audios: [Array],
           subtitles: [Array],
-          expiresS ....[truncated]*/
+          expiresSoon: false,
+          availableSince: 1716871418
+        }
+      ]
+    }
+  }
+]*/
