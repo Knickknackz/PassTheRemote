@@ -130,7 +130,7 @@ function extractNetflixMetadata(): Promise<{
     }
 
     resolve({
-      videoId: null,
+      videoId: window.location.pathname,
       showTitle: parsedShowTitle,
       episodeTitle: parsedEpisodeTitle,
       episodeNumber: parsedEpisodeNumber,

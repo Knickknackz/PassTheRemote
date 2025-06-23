@@ -108,7 +108,7 @@ async function watchCrunchyrollDOMForNavigation() {
         if (debounceTimeout) clearTimeout(debounceTimeout);
         debounceTimeout = setTimeout(() => {
           console.log("🎬 Triggering tryFindVideo() from MutationObserver");
-          sendVideoDataToChild();
+          resetController();
         }, 300);
       }
     }
@@ -117,6 +117,14 @@ async function watchCrunchyrollDOMForNavigation() {
   observer.observe(container, { childList: true, subtree: true });
 
   console.log("👁️ Watching Crunchyroll DOM for changes");
+}
+
+function resetController() {
+  const iframe = document.querySelector('iframe.video-player') as HTMLIFrameElement | null;
+  const targetWindow = iframe?.contentWindow;
+  targetWindow?.postMessage({ 
+    type: "reset-crunchyroll-controller"
+  }, "*");
 }
 
 function sendVideoDataToChild(){
@@ -181,7 +189,8 @@ function toggleFakeFullscreen(enable: boolean) {
     document.exitFullscreen?.().catch(console.warn);
   }
 
-  const root = document.getElementById('reactsync-root');
+  //I think this can be removed?
+  /*const root = document.getElementById('reactsync-root');
   if (root) {
     if(enable){
       root.style.position = 'absolute';
@@ -198,7 +207,7 @@ function toggleFakeFullscreen(enable: boolean) {
       root.style.height = '';
       root.style.transform = '';
     }
-  }
+  }*/
 
   //Message attempt at centering video post-fullscreen
   const iframe = document.querySelector('iframe[src*="vilos"]') as HTMLIFrameElement;

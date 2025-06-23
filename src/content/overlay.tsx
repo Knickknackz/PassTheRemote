@@ -26,11 +26,13 @@ function LiveStatusBadge() {
   );
 }
 
-function DraggableResizable({ customLayout, unlocked, iframeSrc, title }: { customLayout: boolean; unlocked: boolean; iframeSrc: string; title: string; }) {
-  const [position, setPosition] = useState({ x: 0.1, y: 0.1 });
-  const [size, setSize] = useState({ width: 320.0, height: 180.0 });
+function DraggableResizable(
+  { customLayout, unlocked, iframeSrc, title, docked, streamEnabled = false}: 
+  { customLayout: boolean; unlocked: boolean; iframeSrc: string; title: string; docked: boolean; streamEnabled?: boolean; }
+){
+  const [position, setPosition] = useState({ x: 0.8, y: (title === 'Twitch Chat' ? .28 : 0)});
+  const [size, setSize] = useState({ width: .2 , height: (title === 'Twitch Chat' ? .6 : .28)});
   const [opacity, setOpacity] = useState(1);
-
   const savedOverlayRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const resizeDirection = useRef<string | null>(null);
@@ -43,7 +45,7 @@ function DraggableResizable({ customLayout, unlocked, iframeSrc, title }: { cust
 
   useEffect(() => { livePosition.current = position; }, [position]);
   useEffect(() => { liveSize.current = size; }, [size]);
-
+  
   useEffect(() => {
     if (!customLayout) {
       return;
@@ -100,21 +102,64 @@ function DraggableResizable({ customLayout, unlocked, iframeSrc, title }: { cust
           let newHeight = prev.height;
 
           const dir = resizeDirection.current;
-          if (dir?.includes('right')) newWidth = Math.max(0.05, prev.width + dx / rect.width);
-          if (dir?.includes('bottom')) newHeight = Math.max(0.05, prev.height + dy / rect.height);
-          if (dir?.includes('left')) {
-            newWidth = Math.max(0.05, prev.width - dx / rect.width);
-            setPosition((prevPos) => ({
-              ...prevPos,
-              x: Math.max(0, Math.min(1, prevPos.x + dx / rect.width))
-            }));
-          }
-          if (dir?.includes('top')) {
-            newHeight = Math.max(0.05, prev.height - dy / rect.height);
-            setPosition((prevPos) => ({
-              ...prevPos,
-              y: Math.max(0, Math.min(1, prevPos.y + dy / rect.height))
-            }));
+          const isStream = title === 'Twitch Stream';
+
+          if (isStream) {
+            // Maintain 16:9 aspect ratio for stream overlay
+            if (dir?.includes('right') || dir?.includes('left')) {
+              newWidth = dir.includes('right')
+                ? Math.max(0.05, prev.width + dx / rect.width)
+                : Math.max(0.05, prev.width - dx / rect.width);
+              newWidth = Math.min(newWidth, 1); // Clamp to 100% width
+              newHeight = newWidth * 9 / 16;
+              if (newHeight > 1) {
+                newHeight = 1;
+                newWidth = newHeight * 16 / 9;
+              }
+              if (dir?.includes('left')) {
+                setPosition((prevPos) => ({
+                  ...prevPos,
+                  x: Math.max(0, Math.min(1, prevPos.x + dx / rect.width))
+                }));
+              }
+            } else if (dir?.includes('top') || dir?.includes('bottom')) {
+              newHeight = dir.includes('bottom')
+                ? Math.max(0.05, prev.height + dy / rect.height)
+                : Math.max(0.05, prev.height - dy / rect.height);
+              newHeight = Math.min(newHeight, 1); // Clamp to 100% height
+              newWidth = newHeight * 16 / 9;
+              if (newWidth > 1) {
+                newWidth = 1;
+                newHeight = newWidth * 9 / 16;
+              }
+              if (dir?.includes('top')) {
+                setPosition((prevPos) => ({
+                  ...prevPos,
+                  y: Math.max(0, Math.min(1, prevPos.y + dy / rect.height))
+                }));
+              }
+            }
+          } else {
+            // Chat or other overlays: free resize
+            if (dir?.includes('right')) newWidth = Math.max(0.05, prev.width + dx / rect.width);
+            if (dir?.includes('bottom')) newHeight = Math.max(0.05, prev.height + dy / rect.height);
+            if (dir?.includes('left')) {
+              newWidth = Math.max(0.05, prev.width - dx / rect.width);
+              setPosition((prevPos) => ({
+                ...prevPos,
+                x: Math.max(0, Math.min(1, prevPos.x + dx / rect.width))
+              }));
+            }
+            if (dir?.includes('top')) {
+              newHeight = Math.max(0.05, prev.height - dy / rect.height);
+              setPosition((prevPos) => ({
+                ...prevPos,
+                y: Math.max(0, Math.min(1, prevPos.y + dy / rect.height))
+              }));
+            }
+            // Clamp to 100% of container
+            newWidth = Math.min(newWidth, 1);
+            newHeight = Math.min(newHeight, 1);
           }
 
           return { width: newWidth, height: newHeight };
@@ -151,7 +196,7 @@ function DraggableResizable({ customLayout, unlocked, iframeSrc, title }: { cust
           streamOpacity?: number;
           chatOpacity?: number;
         }>(['overlays', 'streamOpacity', 'chatOpacity']);
-
+        console.log(overlays);
         const key = title === 'Twitch Chat' ? 'chat' : 'stream';
         const saved = overlays?.[key];
         const stored = title === 'Twitch Chat' ? chatOpacity : streamOpacity;
@@ -200,29 +245,43 @@ function DraggableResizable({ customLayout, unlocked, iframeSrc, title }: { cust
   }, [customLayout]);
   
   const isChat = title === 'Twitch Chat';
-  const overlayStyle : React.CSSProperties = {
-    position: 'absolute',
-    ...(customLayout ? 
-      { 
-         top: `${position.y * 100}%`,
-        left: `${position.x * 100}%`,
-        width: `${size.width * 100}%`,
-        height: `${size.height * 100}%`,
-     } : {
-        top: isChat ? '28%' : '0%',
-        height: isChat ? '60%' : '28%',
-        right: '0%',
-        width: '20%',
-      }),
-    background: 'black',
-    border: unlocked ? '2px dashed lime' : 'none',
-    boxShadow: unlocked ? '0 0 8px lime' : 'none',
-    zIndex: 10,
-    overflow: 'hidden',
-    opacity,
-    transition: 'opacity 0.2s ease',
-    borderRadius: '12px'
+  // For stream overlay, use vw/vh for true 16:9 aspect ratio
+  const overlayStyle: React.CSSProperties = {
+      position: docked ? 'relative' : 'absolute',
+      ...(docked
+        ? {
+            height: isChat ? '' : '11.25vw',
+            width: '20vw',
+            flex: isChat ? '1' : '',
+            borderRadius: '0px'
+          }
+        : customLayout
+          ? {
+              top: `${position.y * 100}%`,
+              left: `${position.x * 100}%`,
+              width: `${size.width * 100}vw`,
+              borderRadius: '12px',
+              height: isChat
+                ? `${size.height * 100}%`
+                : `${size.width * 100 * 9 / 16}vw`, // 16:9 aspect ratio for stream
+            }
+          : {
+              top: (isChat && streamEnabled) ? '11.25vw' : '0%',
+              height: isChat ? (streamEnabled ? '55%' : '83%')  : '11.25vw',
+              right: '0%',
+              width: '20vw',
+              borderRadius: isChat ? '0px 0px 0px 12px' : '12px 0px 0px 0px',
+            }
+      ),
+      background: 'black',
+      border: unlocked ? '2px dashed lime' : 'none',
+      boxShadow: unlocked ? '0 0 8px lime' : 'none',
+      zIndex: 10,
+      overflow: 'hidden',
+      opacity,
+      transition: 'opacity 0.2s ease',
   };
+
   return (
     <div
       ref={ref}
@@ -303,12 +362,14 @@ function Overlay() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [useCustomLayout, setUseCustomLayout] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [isDocked, setIsDocked] = useState(false);
+  const [showDocked, setShowDocked] = useState(false);
   const [isHost, setIsHost] = useState(false);
   const [roomId, setRoomId] = useState<string | null>('');
   const [showHostTimeStatus, setShowHostTimeStatus] = useState(false);
   const fadeTimer = useRef<NodeJS.Timeout | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
-
+  
   //
   useEffect(() => {
     const checkUrl = (videoIdToCheck: string) => {
@@ -333,19 +394,20 @@ function Overlay() {
       }
     };
 
-    (async () => {const { channelId, showStreamer, showChat, unlocked, visible, customLayout, videoId, role, roomId} 
+    (async () => {const { channelId, showStreamer, showChat, unlocked, visible, docked, customLayout, videoId, role, roomId} 
     = await getFromStorage<{
         channelId?: string;
         showStreamer?: boolean;
         showChat?: boolean;
         unlocked?: boolean;
         visible?: boolean;
+        docked?: boolean;
         customLayout?: boolean;
         videoId?: string;
         role?: string;
         roomId?: string;
       }>([
-        'channelId', 'showStreamer', 'showChat', 'unlocked', 'visible',
+        'channelId', 'showStreamer', 'showChat', 'unlocked', 'visible', 'docked',
         'customLayout', 'videoId', 'role', 'roomId'
       ]);
 
@@ -355,6 +417,7 @@ function Overlay() {
       setIsUnlocked(!!unlocked);
       setUseCustomLayout(!!customLayout);
       setIsVisible(!!visible);
+      setIsDocked(!!docked);
       setIsHost(role === 'host');
       setRoomId(roomId || '');
       checkUrl(videoId || '');
@@ -364,6 +427,7 @@ function Overlay() {
       if (areaName !== 'local') return;
       if (changes.unlocked) setIsUnlocked(!!changes.unlocked.newValue);
       if (changes.visible) setIsVisible(!!changes.visible.newValue);
+      if (changes.docked) setIsDocked(!!changes.docked.newValue);
       if (changes.customLayout) setUseCustomLayout(!!changes.customLayout.newValue);
       if (changes.showStreamer) setShowStreamer(!!changes.showStreamer.newValue);
       if (changes.showChat) setShowChat(!!changes.showChat.newValue);
@@ -394,6 +458,30 @@ function Overlay() {
     };
   }, []);
 
+
+  //Handles "Docking" (ONLY WORKS IN CRUNCHYROLL ATM)
+  useEffect(() => {
+    const wrapper = document.querySelector('.video-player-wrapper');
+    const player = document.querySelector('.video-player');
+    if (!wrapper || !player){
+      setShowDocked(false);
+      return;
+    } 
+
+    // Save previous styles
+    const prevWrapperDisplay = wrapper.style.display;
+    const prevPlayerHeight = player.style.height;
+
+    wrapper.style.display = isDocked && isVisible ? 'flex' : '';
+    player.style.height = isDocked && isVisible ? 'auto' : '100%';
+    setShowDocked(isDocked);
+    return () => {
+      // Restore previous styles on cleanup
+      wrapper.style.display = prevWrapperDisplay;
+      player.style.height = prevPlayerHeight;
+    };
+  }, [isDocked, isVisible]);
+
   return (
     <div
       ref={rootRef}
@@ -410,21 +498,41 @@ function Overlay() {
         }, 3000);
       }}
     >
-      {!isHost && roomId && (<HostTimeStatus isVisible={showHostTimeStatus}/>)}
-      {(isHost) && (<LiveStatusBadge />)}
-      <div style={{ visibility: isVisible ? 'visible' : 'hidden'}}>
+      <div id='ptr-stats'
+        style={{
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          position: 'absolute', // or 'fixed' if you want it to always cover the viewport
+          top: 0,
+          left: 0,
+          zIndex: 9999,
+        }}
+      >
+        {!isHost && roomId && (<HostTimeStatus isVisible={showHostTimeStatus}/>)}
+        {(isHost) && (<LiveStatusBadge />)}
+      </div>
+      <div style={{ 
+        visibility: isVisible ? 'visible' : 'hidden', 
+        width: '100%',
+        height: '100%',
+        ...((showDocked && isVisible) ? { display: 'flex', flexDirection: 'column'} : { display:'block'}),
+        }}>
         {(channel && showStreamer)&& (
           <DraggableResizable
             customLayout={useCustomLayout}
             unlocked={isUnlocked}
+            docked={showDocked}
             iframeSrc={`https://player.twitch.tv/?channel=${channel}&parent=${window.location.hostname}`}
             title="Twitch Stream"
           />
         )}
         {(channel && showChat) && (
           <DraggableResizable 
+            streamEnabled={showStreamer}
             customLayout={useCustomLayout}
             unlocked={isUnlocked} 
+            docked={showDocked}
             iframeSrc={`https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}`} 
             title="Twitch Chat" />
         )}
@@ -471,13 +579,14 @@ export function mountOverlayTo(target: HTMLElement) {
 function safeMountOverlay() {
   const tryMount = async () => {
     const isCrunchyroll = location.hostname.includes('crunchyroll.com');
-
+    const isNetflix = location.hostname.includes('netflix.com');
     try {
       let target: Element | null;
-
       if (isCrunchyroll) {
         target = await waitForElement('.video-player-wrapper', 10000);
-      } else {
+      } else if (isNetflix) {
+        target = await waitForElement('.watch-video', 10000);
+      }else{
         target = document.fullscreenElement || document.body;
         if (!target) {
           requestAnimationFrame(tryMount); // Wait and retry on next frame

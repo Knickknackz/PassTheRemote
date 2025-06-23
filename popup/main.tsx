@@ -17,6 +17,7 @@ function Popup() {
   const [useCustomLayout, setUseCustomLayout] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [isDocked, setIsDocked] = useState(true);
   const [joinRoomId, setJoinRoomId] = useState('');
   const [feedback, setFeedback] = useState('');
   const [skipSeconds, setSkipSeconds] = useState('30');
@@ -77,6 +78,7 @@ function Popup() {
   const toggleCustomLayout = () =>{
     const newVal = !useCustomLayout;
     setUseCustomLayout(newVal);
+    setIsDocked(false);
     setEnableUnlock(newVal && isUnlocked);
     setInStorage({ customLayout: newVal });
   };
@@ -115,6 +117,15 @@ function Popup() {
     setInStorage({ visible: newVal });
   }
 
+  const toggleDocked = () => {
+    const newVal = !isDocked;
+    setIsDocked(newVal);
+    setUseCustomLayout(false);
+    setEnableUnlock(false);
+    setIsUnlocked(false);
+    setInStorage({ docked: newVal, customLayout: false, unlocked: false });
+  }
+
   const saveOverlayPositions= () =>{
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
@@ -144,6 +155,7 @@ function Popup() {
         customLayout,
         unlocked,
         visible,
+        docked,
         user_id,
         roomId = '',
         streamOpacity = 1,
@@ -157,13 +169,14 @@ function Popup() {
         customLayout?: boolean;
         unlocked?: boolean;
         visible?: boolean;
+        docked?: boolean;
         user_id?: string;
         roomId?: string;
         streamOpacity?: number;
         chatOpacity?: number;
       }>([
         'twitchUsername', 'role', 'channelId', 'showStreamer', 'showChat',
-        'customLayout', 'unlocked', 'visible', 'user_id', 'roomId',
+        'customLayout', 'unlocked', 'visible', 'docked', 'user_id', 'roomId',
         'streamOpacity', 'chatOpacity'
       ]);
 
@@ -177,6 +190,7 @@ function Popup() {
       setUseCustomLayout(!!customLayout);
       setEnableUnlock(customLayout ? !!unlocked : !!customLayout);
       setIsVisible(!!visible);
+      setIsDocked(!!docked);
       setJoinRoomId(roomId);
       setStreamOpacity(streamOpacity);
       setChatOpacity(chatOpacity);
@@ -699,28 +713,44 @@ function Popup() {
 
       {currentTab === 'Settings' && (
         <div className={styles.tabContent}>
-          <h3>Overlay Controls</h3>
+          <h3>Stream Controls</h3>
           <ToggleSlider
-            label="Use Custom Layout"
-            checked={useCustomLayout}
-            onChange={() => toggleCustomLayout()}
-          />
-          <ToggleSlider
-            label="Unlock Position Controls"
-            checked={enableUnlock}
-            onChange={() => toggleUnlock()}
-          />
-          <ToggleSlider
-            label="Show Overlay"
+            label="Enable Stream and Chat Visibility"
             checked={isVisible}
             onChange={() => setVisibility(!isVisible)}
           />
-          <button
-            className={styles.button}
-            onClick={() => saveOverlayPositions()}
-          >
-            💾 Save Overlay Positions
-          </button>
+          {isVisible && (
+            <>
+            <ToggleSlider
+              label="Docked Overlay"
+              checked={isDocked}
+              onChange={() => toggleDocked()}
+            />
+            
+            {!isDocked && (
+              <ToggleSlider
+                label="Use Custom Layout"
+                checked={useCustomLayout}
+                onChange={() => toggleCustomLayout()}
+              />
+            )}
+            </>
+          )}
+          {useCustomLayout && (
+            <>
+              <ToggleSlider
+                label="Unlock Custom Layout"
+                checked={enableUnlock}
+                onChange={() => toggleUnlock()}
+              />
+              <button
+                className={styles.button}
+                onClick={() => saveOverlayPositions()}
+              >
+                💾 Save Overlay Positions
+              </button>
+            </>
+          )}
        </div>
       )}
 

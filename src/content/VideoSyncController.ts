@@ -220,6 +220,17 @@ export class VideoSyncController {
 
           break;
         }
+        case 'room-match':{
+          console.log('Room Match!', msg);
+          /*const roomIds = [...new Set([
+            ...msg.exactMatches.map(r => r.room_id),
+            ...msg.showMatches.map(r => r.room_id)
+          ])];
+          const query = `roomIds=${roomIds.join(',')}`;*/
+          const url = chrome.runtime.getURL(`src/rooms/index.html?showTitle=${encodeURIComponent(msg.exactMatches[0].show_title)}`);
+          console.log('Opening Room URL:', url);
+          break;
+        }
         case 'request-state':
           this.sendState();
           sendResponse({ videoFound: true });
@@ -240,7 +251,11 @@ export class VideoSyncController {
   protected registerIfNeeded() {
     if (!this.video) return;
 
-    chrome.runtime.sendMessage({ type: 'register-content' });
+    chrome.runtime.sendMessage({ 
+      type: 'register-content', 
+      videoId: this.videoId, 
+      showTitle: this.showTitle 
+    });
     window.addEventListener('unload', () => {
       chrome.runtime.sendMessage({ type: 'unregister-content' });
     });

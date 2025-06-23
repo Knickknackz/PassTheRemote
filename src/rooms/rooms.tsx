@@ -150,8 +150,18 @@ function RecommendedRoomsPage() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [showLiveOnly, setShowLiveOnly] = useState(false);
   const [platformFilters, setPlatformFilters] = useState<string[]>(['netflix', 'crunchyroll']);
+  //const [videoIdSearch, setVideoIdSearch] = useState<string>('');
+  const [showTitleSearch, setShowTitleSearch] = useState<string>('');
 
 useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  //const initialVideoId = params.get('videoId');
+  //setVideoIdSearch(initialVideoId || '');
+  const initialShowTitle = params.get('showTitle');
+  setShowTitleSearch(initialShowTitle || ''); 
+
+  console.log(showTitleSearch);
+
   const fetchRooms = async () => {
     const {
       showLiveOnly,
@@ -294,6 +304,17 @@ useEffect(() => {
               {platform.charAt(0).toUpperCase() + platform.slice(1)}
             </label>
           ))}
+          {/* Show Title Search Box */}
+          <label className="filterToggle" style={{ flex: 1, minWidth: 0, marginLeft: '1rem' }}>
+            <span style={{ marginRight: 6 }}>Show Search:</span>
+            <input
+              type="text"
+              value={showTitleSearch}
+              onChange={e => setShowTitleSearch(e.target.value)}
+              placeholder="Search by show title..."
+              className="showTitleSearchInput"
+            />
+          </label>
         </div>
       </div>
       <div className="gridContainer">
@@ -301,6 +322,7 @@ useEffect(() => {
           .filter((room) =>
             (!showLiveOnly || room.isLive) &&
             platformFilters.includes(room.provider?.toLowerCase())
+            && (showTitleSearch == '' || room.show_title?.toLowerCase().includes(showTitleSearch.toLowerCase()))
           )
           .map((room) => (
             <RoomCard key={room.room_id} room={room} joinRoom={joinRoom} />
@@ -312,3 +334,5 @@ useEffect(() => {
 
 const root = document.getElementById('root');
 if (root) createRoot(root).render(<RecommendedRoomsPage />);
+
+/*&& (videoIdSearch == '' || room.video_id?.toLowerCase().includes(videoIdSearch.toLowerCase()))*/

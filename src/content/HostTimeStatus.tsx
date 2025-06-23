@@ -75,6 +75,7 @@ export default function HostTimeStatus({ isVisible }: { isVisible : boolean;}) {
         opacity: isVisible  ? 1 : 0,
         transition: 'opacity 0.3s ease',
         pointerEvents: 'none', // Don't block interactions
+        position  : 'absolute',
     }}>
       🧑‍💻 <strong>Room is at:</strong> {displayTime} ({hostState.state})
         {(hostState.title || hostState.episode) && (

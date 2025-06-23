@@ -106,7 +106,7 @@ async function resubscribeToRoom(roomId: string) {
         }
       });
     });
-    
+
 
   await channel.subscribe((status) => {
     console.log(`📶 Supabase channel status: ${status}`);
@@ -162,47 +162,71 @@ function init() {
   });
 
   // Runtime message handler
-  chrome.runtime.onMessage.addListener((message, sender) => {
-    console.log("📨 Runtime message received:", message);
+  chrome.runtime.onMessage.addListener(async (message, sender) => {
     if (message.type === 'register-content' && sender.tab?.id) {
       registeredTabIds.add(sender.tab.id);
       console.log("✅ Registered tab:", sender.tab.id);
       getFromStorage<{ roomId: string }>('roomId').then(({ roomId }) => {
-        if(!roomId){ 
-          return;
-        }
-        supabase
-        .from('reactr_rooms')
-        .select('provider, video_id, current_time, updated_at, play_state, show_title, episode_title, episode_number, viewer_count')
-        .eq('room_id', roomId)
-        .maybeSingle()
-        .then(({ data, error }) => {
-          if (error || !data) {
-            broadcastToAllTabs({
-              type: 'room-closed',
-              roomId: roomId,
-            });
-            removeFromStorage(['roomId','role','videoId','provider']);
-            console.log('Invalid Room, Probably Delteted, Clearing Local Values');
-            return;
-          }
+        if(roomId){ 
+          supabase
+          .from('reactr_rooms')
+          .select('provider, video_id, current_time, updated_at, play_state, show_title, episode_title, episode_number, viewer_count')
+          .eq('room_id', roomId)
+          .maybeSingle()
+          .then(({ data, error }) => {
+            if (error || !data) {
+              broadcastToAllTabs({
+                type: 'room-closed',
+                roomId: roomId,
+              });
+              removeFromStorage(['roomId','role','videoId','provider']);
+              console.log('Invalid Room, Probably Delteted, Clearing Local Values');
+              return;
+            }
 
-          // ✅ valid room — broadcast sync-update
-          console.log('📥 Syncing playing info after registering');
-          broadcastToAllTabs({
-            type: 'sync-update',
-            state: data.play_state,
-            time: data.current_time,
-            video_id: data.video_id,
-            provider: data.provider,
-            show_title: data.show_title,
-            episode_title: data.episode_title,
-            episode_number: data.episode_number,
-            updated_at: data.updated_at,
-            viewer_count: data.viewer_count
+            // ✅ valid room — broadcast sync-update
+            console.log('📥 Syncing playing info after registering');
+            broadcastToAllTabs({
+              type: 'sync-update',
+              state: data.play_state,
+              time: data.current_time,
+              video_id: data.video_id,
+              provider: data.provider,
+              show_title: data.show_title,
+              episode_title: data.episode_title,
+              episode_number: data.episode_number,
+              updated_at: data.updated_at,
+              viewer_count: data.viewer_count
+            });
           });
-        });
+        }
       });
+      const filters = [];
+      if (message.videoId) filters.push(`video_id.eq.${message.videoId}`);
+      if (message.showTitle) filters.push(`show_title.ilike.${message.showTitle}`);
+      if (filters.length === 0) return; // Prevent querying all rooms
+      try {
+        const { data: matchingRooms, error } = await supabase
+          .from('reactr_rooms')
+          .select('room_id, video_id, show_title, episode_title, episode_number, provider')
+          .or(filters.join(','));
+        
+        if (!error && matchingRooms && matchingRooms.length > 0) {
+          const exactMatches = matchingRooms.filter(r => r.video_id === message.videoId);
+          const showMatches = matchingRooms.filter(r =>
+            r.show_title?.toLowerCase() === message.showTitle?.toLowerCase() 
+          );
+          if (sender.tab?.id) {
+            chrome.tabs.sendMessage(sender.tab.id, {
+              type: 'room-match',
+              exactMatches,
+              showMatches,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error checking for matching rooms:', err);
+      }
     }
     if (message.type === "video-update") {
       console.log("📤 Syncing video state:", message);

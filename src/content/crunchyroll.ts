@@ -60,6 +60,10 @@ function setupMetadataListener() {
       }
     }
 
+    if(event.data?.type === 'reset-crunchyroll-controller') {
+      controller.reset();
+    }
+
     //listener for marking vilos as relative
     if (event.data?.type === 'reactr-mark-vilos-relative') {
       const enable = !!event.data.payload?.enable;
@@ -71,7 +75,7 @@ function setupMetadataListener() {
           vilos.style.left = '50%';
           vilos.style.transform = 'translate(-50%, -50%)';
           vilos.style.width = '100vw';
-          vilos.style.height = '56.25vw'; // 16:9
+          //vilos.style.height = '56.25vw'; // 16:9
           console.log(`📌 #vilos marked position: ${vilos.style.position}`);
         }else{
           vilos.removeAttribute('style');
@@ -84,7 +88,7 @@ function setupMetadataListener() {
 
 setupMetadataListener();
 
-new VideoSyncController({
+const controller = new VideoSyncController({
   getProviderId: () => 'crunchyroll',
   getVideoId: getCrunchyrollVideoId,
   getMetadata: requestMetadataFromParent,
@@ -103,7 +107,9 @@ new VideoSyncController({
   onRoomClosed: () => {
     window.parent.postMessage({ type: 'parent:room-closed' }, '*');
   }
-}).init();
+});
+
+controller.init();
 
 
 let isFakeFullscreen = false;

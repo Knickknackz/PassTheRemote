@@ -363,3 +363,16 @@
   color: #ccc;
   margin-top: 0.5rem;
 }
+
+.showTitleSearchInput {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #222;
+  color: #fff;
+  min-width: 120px;
+  width: 100%;
+  font-size: 1em;
+  outline: none;
+  margin-left: 4px;
+}
