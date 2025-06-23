@@ -4,6 +4,43 @@ import { handleCors, jsonResponse, isAuthorized } from '../_shared/utils.ts';
 const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY'); // ⬅️ Set this in Supabase project settings
 const REACTR_EXTENSION_SECRET = Deno.env.get('REACTR_EXTENSION_SECRET');
 
+function normalizeStreamingOptions(streamingOptions: Record<string, any>) {
+  const platformStreams: Record<string, any> = {};
+  const availabilityByPlatform: Record<string, string[]> = {};
+
+  for (const [countryCode, entries] of Object.entries(streamingOptions)) {
+    for (const entry of entries as any[]) {
+      const type = entry.type;
+      if (!['subscription', 'addon'].includes(type)) continue;
+
+      let platformId: string | undefined;
+      if (type === 'addon' && entry.addon?.id) {
+        platformId = entry.addon.id.toLowerCase();
+      } else if (entry.service?.id) {
+        platformId = entry.service.id.toLowerCase();
+      }
+      if (!platformId) continue;
+
+      if (!availabilityByPlatform[platformId]) availabilityByPlatform[platformId] = [];
+      if (!availabilityByPlatform[platformId].includes(countryCode)) {
+        availabilityByPlatform[platformId].push(countryCode);
+      }
+
+      if (!platformStreams[platformId]) {
+        platformStreams[platformId] = {
+          link: entry.link,
+          videoLink: entry.videoLink || null,
+          quality: entry.quality || null,
+          expiresSoon: !!entry.expiresSoon,
+          ...(entry.expiresSoon && entry.expiresOn ? { expiresOn: entry.expiresOn } : {}),
+        };
+      }
+    }
+  }
+
+  return { availabilityByPlatform, platformStreams };
+}
+
 function extractExpires(url: string): number | null {
   const match = url.match(/Expires=(\d+)/);
   return match ? parseInt(match[1], 10) : null;
@@ -48,19 +85,21 @@ serve(async (req) => {
     console.log(result);
     const expiresAt = findEarliestExpiration(result.imageSet);
     const expires_at = expiresAt ? new Date(expiresAt * 1000).toISOString() : null;
+    const { availabilityByPlatform, platformStreams } = normalizeStreamingOptions(result.streamingOptions);
     const meta = {
         found: true,
         title: result.title,
         overview: result.overview,
         year: result.firstAirYear,
         genres: result.genres?.map((g: any) => g.name),
-        streaming: result.streamingOptions?.us || [],
         posters: {
             vertical: result.imageSet?.verticalPoster || {},
             horizontal: result.imageSet?.horizontalPoster || {},
             backdrop: result.imageSet?.horizontalBackdrop || {},
         },
         expires_at,
+        availability_by_platform: availabilityByPlatform,
+        platform_streams: platformStreams,
     };
     console.log(meta);
     return jsonResponse(meta, 200);

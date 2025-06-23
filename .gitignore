@@ -36,5 +36,6 @@ twitch-dist/
 *.sw?
 
 # Supabase generated types/config (if you ever use them)
+supabase/.temp/
 supabase/migrations/
 supabase/temp/

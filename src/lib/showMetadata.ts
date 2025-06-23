@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom';
 import { supabase } from './supabaseClient'; // adjust path as needed
 
 export async function fetchShowMetadata(title: string) {
@@ -37,7 +36,8 @@ export async function fetchShowMetadata(title: string) {
         overview: meta.overview,
         posters: meta.posters, // 👈 add this
         expires_at: meta.expires_at,
-        source_platforms: meta.streaming || []
+        availability_by_platform: meta.availability_by_platform,
+        platform_streams: meta.platform_streams
       }, { onConflict: ['title', 'year'] });
 
     if (insertError) console.error('❌ Failed to cache metadata:', insertError.message);
