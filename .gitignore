@@ -25,6 +25,8 @@ twitch-dist/
 *.local
 
 # Editor files
+.continue/
+.vscode/
 .vscode/*
 !.vscode/extensions.json
 .idea/

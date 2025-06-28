@@ -33,6 +33,12 @@ function getRoomUrl(provider: string, video_id: string, current_time: number) {
   }
 }
 
+async function handleJoinClick(e, room, twitchUsername, targetUrl) {
+          e.preventDefault();
+          await switchToRoom(room.room_id, twitchUsername, room.video_id, room.provider);
+          window.location.href = targetUrl;
+}
+
 function ReactrBanner({ room, twitchUsername, targetUrl, onClose }: {
   room: any;
   twitchUsername: string;
@@ -72,11 +78,7 @@ function ReactrBanner({ room, twitchUsername, targetUrl, onClose }: {
       <a
         href="#"
         style={{ color: '#00ffa3', fontWeight: 'bold', textDecoration: 'underline', fontSize: 16 }}
-        onClick={async (e) => {
-          e.preventDefault();
-          await switchToRoom(room.room_id, twitchUsername, room.video_id, room.provider);
-          window.location.href = targetUrl;
-        }}
+        onClick={(e) => handleJoinClick(e, room, twitchUsername, targetUrl)}
       >
         Click to join →
       </a>
@@ -114,13 +116,9 @@ function showReactrBanner(room: {
 }
 
 async function switchToRoom(newRoomId: string, twitchUsername: string, videoId : string, provider: string) {
-  //Was there to prevent duplicates. Likely unreachable now
   if (currentRole === 'host' && currentRoomId && (newRoomId !== currentRoomId)) {
     await supabase.from('reactr_rooms').delete().eq('room_id', currentRoomId);
   }
-
-  //Currently Unneeded. Only necessary if we want hosts to swap rooms.
-  //const newRole = (currentRole === 'host' && newRoomId === currentRoomId) ? 'host' : 'audience';
 
   await setInStorage({
     roomId: newRoomId,
@@ -132,13 +130,11 @@ async function switchToRoom(newRoomId: string, twitchUsername: string, videoId :
     provider
   });
 
-  // ✅ Update globals to reflect change
   currentRoomId = newRoomId;
   currentRole = 'audience';
 }
 
-// 🔁 Run on Twitch load
-(async () => {
+async function initializeTwitchReactionBanner() {
   const twitchUser = getTwitchUsernameFromUrl();
   if (!twitchUser) return;
 
@@ -146,7 +142,6 @@ async function switchToRoom(newRoomId: string, twitchUsername: string, videoId :
   currentRoomId = storage.roomId;
   currentRole = storage.role;
 
-  // ✅ Early exit: already host and have a room
   if (currentRole === 'host' && currentRoomId) {
     console.log('🟢 Already host with an active room. Skipping Reactr banner injection.');
     return;
@@ -160,4 +155,8 @@ async function switchToRoom(newRoomId: string, twitchUsername: string, videoId :
       return;
     }
   }
+}
+
+(async () => {
+  await initializeTwitchReactionBanner();
 })();

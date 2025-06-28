@@ -6,8 +6,69 @@ import './rooms.css';
 import { fetchShowMetadata } from '../lib/showMetadata';
 import { getFromStorage, setInStorage } from '../lib/storage';
 
-// Secure environment variables access
 const VITE_REACTR_EXTENSION_SECRET = import.meta.env.VITE_REACTR_EXTENSION_SECRET as string;
+
+async function fetchRoomData() {
+  const { data, error } = await supabase
+    .from('reactr_rooms')
+    .select(`
+      host_id,
+      room_id,
+      provider,
+      video_id,
+      current_time,
+      streamer_username,
+      twitch_user_id,
+      twitch_users (profile_image_url, display_name),
+      show_title,
+      episode_title,
+      episode_number
+    `)
+    .order('updated_at', { ascending: false })
+    .limit(20);
+  return !data || error ? [] : data;
+}
+
+interface Room {
+  twitch_user_id: string;
+  show_title?: string;
+  provider?: string;
+}
+
+async function fetchLiveStatuses(twitchIds: string[]): Promise<Map<string, any>> {
+  const liveRes = await fetch(import.meta.env.VITE_SUPABASE_URL + '/functions/v1/get-live-status', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-extension-auth': VITE_REACTR_EXTENSION_SECRET,
+    },
+    body: JSON.stringify({ twitch_user_ids: twitchIds }),
+  });
+  const { live_streams } = await liveRes.json();
+  return new Map((live_streams || []).map((stream: any) => [stream.twitch_user_id, stream]));
+}
+
+async function enrichRoomsData(data: Room[], liveMap: Map<string, any>): Promise<any[]> {
+  return Promise.all(
+    data.map(async (room) => {
+      if (!room.show_title) return room;
+      const meta = await fetchShowMetadata(room.show_title);
+      const stream = liveMap.get(room.twitch_user_id);
+      return {
+        ...room,
+        provider: room.provider ? room.provider.charAt(0).toUpperCase() + room.provider.slice(1) : '',
+        isLive: !!stream,
+        title: stream?.title || null,
+        thumbnail_url: stream?.thumbnail_url || null,
+        viewer_count: stream?.viewer_count || null,
+        tags: stream?.tags || [],
+        is_mature: stream?.is_mature || false,
+        preview_hover: false,
+        metadata: meta,
+      };
+    })
+  );
+}
 
 function getVideoUrl(provider: string, video_id: string, current_time: number): string | null {
   const t = Math.floor(current_time || 0);
@@ -158,7 +219,7 @@ function RecommendedRoomsPage() {
 
     console.log(showTitleSearch);
 
-    const fetchRooms = async () => {
+    const fetchAndSetRooms = async () => {
       const {
         showLiveOnly,
         platformFilters
@@ -170,67 +231,16 @@ function RecommendedRoomsPage() {
       if (typeof showLiveOnly === 'boolean') setShowLiveOnly(showLiveOnly);
       if (Array.isArray(platformFilters)) setPlatformFilters(platformFilters);
 
-      const { data, error } = await supabase
-        .from('reactr_rooms')
-        .select(`
-          host_id,
-          room_id,
-          provider,
-          video_id,
-          current_time,
-          streamer_username,
-          twitch_user_id,
-          twitch_users (profile_image_url, display_name),
-          show_title,
-          episode_title,
-          episode_number
-        `)
-        .order('updated_at', { ascending: false })
-        .limit(20);
-
-      if (!data || error) return;
-
+      const data = await fetchRoomData();
       const twitchIds = data.map(r => r.twitch_user_id).filter(Boolean);
 
-      const liveRes = await fetch(import.meta.env.VITE_SUPABASE_URL + '/functions/v1/get-live-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-extension-auth': VITE_REACTR_EXTENSION_SECRET,
-        },
-        body: JSON.stringify({ twitch_user_ids: twitchIds }),
-      });
-
-      const { live_streams } = await liveRes.json();
-      const liveMap = new Map((live_streams || []).map((stream: any) => [stream.twitch_user_id, stream]));
-
-      const enrichedRooms = await Promise.all(
-        data.map(async (room) => {
-          if (!room.show_title) return room;
-
-          const meta = await fetchShowMetadata(room.show_title);
-          const stream = liveMap.get(room.twitch_user_id);
-
-          return {
-            ...room,
-            provider: room.provider ? room.provider.charAt(0).toUpperCase() + room.provider.slice(1) : '',
-            isLive: !!stream,
-            title: stream?.title || null,
-            thumbnail_url: stream?.thumbnail_url || null,
-            viewer_count: stream?.viewer_count || null,
-            tags: stream?.tags || [],
-            is_mature: stream?.is_mature || false,
-            preview_hover: false,
-            metadata: meta,
-          };
-        })
-      );
-
+      const liveMap = await fetchLiveStatuses(twitchIds);
+      const enrichedRooms = await enrichRoomsData(data, liveMap);
       enrichedRooms.sort((a, b) => (b.isLive ? 1 : 0) - (a.isLive ? 1 : 0));
       setRooms(enrichedRooms);
     };
 
-    fetchRooms();
+    fetchAndSetRooms();
   }, []);
 
   const joinRoom = async (room: any) => {
