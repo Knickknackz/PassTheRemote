@@ -4,6 +4,16 @@ import { jsonResponse, handleCors, isAuthorized } from "../_shared/utils.ts";
 
 const REACTR_EXTENSION_SECRET = Deno.env.get('REACTR_EXTENSION_SECRET');
 
+const client_id = Deno.env.get("TWITCH_CLIENT_ID");
+const client_secret = Deno.env.get("TWITCH_CLIENT_SECRET");
+const chrome_extension_id = Deno.env.get("CHROME_EXTENSION_ID");
+const supabase_url = Deno.env.get("SUPABASE_URL");
+const supabase_service_role_key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+if (!REACTR_EXTENSION_SECRET || !client_id || !client_secret || !chrome_extension_id || !supabase_url || !supabase_service_role_key) {
+  throw new Error("Missing required environment variables.");
+}
+
 serve(async (req) => {
   const corsResult = handleCors(req);
   if (corsResult) return corsResult;
@@ -25,10 +35,7 @@ serve(async (req) => {
     console.error("❌ Missing code or state in request body");
     return jsonResponse("❌ Missing code or state", 400);
   }
-
-  const client_id = Deno.env.get("TWITCH_CLIENT_ID")!;
-  const client_secret = Deno.env.get("TWITCH_CLIENT_SECRET")!;
-  const redirect_uri = `https://${Deno.env.get("CHROME_EXTENSION_ID")}.chromiumapp.org/`;
+  const redirect_uri = `https://${chrome_extension_id}.chromiumapp.org/`;
 
   const tokenRes = await fetch("https://id.twitch.tv/oauth2/token", {
     method: "POST",
@@ -46,7 +53,7 @@ serve(async (req) => {
   const { access_token, refresh_token, expires_in } = tokens;
 
   if (!access_token || !refresh_token) {
-    console.error("❌ Failed to retrieve Twitch tokens");
+    console.error("❌ Failed to retrieve Twitch tokens. Tokens or codes are missing.");
     return jsonResponse("❌ Failed to get tokens", 400);
   }
 
@@ -61,15 +68,11 @@ serve(async (req) => {
   const user = userData.data?.[0];
 
   if (!user) {
-    console.error("❌ Failed to fetch Twitch user");
+    console.error("❌ Failed to fetch Twitch user.");
     return jsonResponse("❌ Failed to fetch Twitch user", 400);
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
+  const supabase = createClient(supabase_url, supabase_service_role_key);
   const { error } = await supabase.from("twitch_users")
   .upsert({
     local_user_id: state,
@@ -96,7 +99,7 @@ serve(async (req) => {
     twitch_username: user.login,
     access_token,
     refresh_token,
-    expires_in, // in seconds
+    expires_in,
     token_set_at: Date.now(),
   });
 });

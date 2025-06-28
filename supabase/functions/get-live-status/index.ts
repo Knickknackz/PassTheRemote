@@ -12,7 +12,7 @@ serve(async (req) => {
   if (cors) return cors;
 
   if (!isAuthorized(req, REACTR_EXTENSION_SECRET)) {
-    console.error("❌ Unauthorized request");
+    console.error("Unauthorized access attempt blocked.");
     return jsonResponse("Unauthorized", 403);
   }
 
@@ -20,12 +20,12 @@ serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return jsonResponse("❌ Invalid JSON", 400);
+    return jsonResponse("Invalid JSON format", 400);
   }
 
   const { twitch_user_ids } = body;
   if (!Array.isArray(twitch_user_ids) || twitch_user_ids.length === 0) {
-    return jsonResponse("❌ Missing twitch_user_ids", 400);
+    return jsonResponse("Missing twitch_user_ids", 400);
   }
 
   const token = await getAppAccessToken();
@@ -36,30 +36,33 @@ serve(async (req) => {
     const params = new URLSearchParams();
     chunk.forEach(id => params.append('user_id', id));
     params.append('first', '100');
-    console.log(params);
-    const res = await fetch(`https://api.twitch.tv/helix/streams?${params}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Client-Id': TWITCH_CLIENT_ID!,
-      },
-    });
 
-    if (!res.ok) {
-      console.error(`❌ Twitch error: ${res.status} ${await res.text()}`);
-      continue;
-    }
+    try {
+      const res = await fetch(`https://api.twitch.tv/helix/streams?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Client-Id': TWITCH_CLIENT_ID!,
+        },
+      });
 
-    const { data } = await res.json();
-    for (const stream of data) {
-      enriched.push({
+      if (!res.ok) {
+        console.error(`Twitch API error for chunk: ${res.status}`);
+        continue;
+      }
+
+      const { data } = await res.json();
+      data.forEach(stream => enriched.push({
         twitch_user_id: stream.user_id,
         title: stream.title,
         language: stream.language,
         viewer_count: stream.viewer_count,
         thumbnail_url: stream.thumbnail_url,
-        tags: stream.tags || [], // fallback if no tag labels
+        tags: stream.tags || [],
         is_mature: stream.is_mature ?? false,
-      });
+      }));
+
+    } catch (error) {
+      console.error("Fetching Twitch streams encountered an error:", error);
     }
   }
 

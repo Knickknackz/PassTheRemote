@@ -1,3 +1,5 @@
+import { showCountdownToast, showRoomClosedToast } from './toastUtils';
+
 console.log("🧠 Parent page content script active for Netflix");
 // Listen for video ID requests from the iframe
 
@@ -6,86 +8,15 @@ window.addEventListener("message", (event) => {
       sendVideoDataToChild();
     }
     if (event.data?.type === 'reactsync:navigate') {
-      const { videoUrl } = event.data;
-      console.log(videoUrl);
-      showCountdownToast(videoUrl);
+      showCountdownToast(event.data.videoUrl);
     }
     if(event.data?.type === 'parent:room-closed'){
-      showInjectedToast();
+      showRoomClosedToast();
     }
     if(event.data?.type === 'room-closed'){
       console.log('PARENT CAN CATCH ROOM CLOSED');
     }
 });
-
-function showCountdownToast(videoUrl: string) {
-  const toast = document.createElement('div');
-  toast.innerHTML = `
-    <div style="margin-bottom: 0.5em;">🎬 Host switched videos</div>
-    <div>Following in <strong>3</strong>...</div>
-  `;
-
-  Object.assign(toast.style, {
-    position: 'fixed',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    background: '#1fe374',
-    color: '#000',
-    padding: '24px 36px',
-    borderRadius: '12px',
-    zIndex: '99999',
-    fontSize: '22px',
-    fontFamily: 'Inter, sans-serif',
-    textAlign: 'center',
-    fontWeight: 'bold',
-    boxShadow: '0 0 16px rgba(0,0,0,0.3)',
-  });
-
-  document.body.appendChild(toast);
-
-  let countdown = 3;
-  const countdownLine = toast.querySelector('div:nth-child(2) > strong');
-
-  const interval = setInterval(() => {
-    countdown--;
-    if (countdown > 0) {
-      if (countdownLine) countdownLine.textContent = `${countdown}`;
-    } else {
-      clearInterval(interval);
-      toast.innerHTML = `<div>🎬 Redirecting now...</div>`;
-      setTimeout(() => {
-        window.location.href = videoUrl;
-      }, 400);
-    }
-  }, 1000);
-}
-
-function showInjectedToast() {
-  const toast = document.createElement('div');
-  toast.innerHTML = `
-    <div style="margin-bottom: 0.5em;">🚪 Room Closed</div>
-    <div>The host has ended this session.</div>
-  `;
-  Object.assign(toast.style, {
-    position: 'fixed',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    background: '#1fe374',
-    color: '#000',
-    padding: '24px 36px',
-    borderRadius: '12px',
-    zIndex: '99999',
-    fontSize: '22px',
-    fontFamily: 'Inter, sans-serif',
-    textAlign: 'center',
-    fontWeight: 'bold',
-    boxShadow: '0 0 16px rgba(0,0,0,0.3)',
-  });
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 5000);
-}
 
 async function watchCrunchyrollDOMForNavigation() {
   const container = document.querySelector('#appMountPoint') || document.body;
