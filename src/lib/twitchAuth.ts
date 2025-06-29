@@ -1,5 +1,5 @@
 // src/lib/twitchAuth.ts
-import { getFromStorage, setInStorage } from './storage'; 
+import { getFromStorage, setInStorage } from './utils'; 
 
 const clientId = import.meta.env.VITE_TWITCH_CLIENT_ID;
 const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;

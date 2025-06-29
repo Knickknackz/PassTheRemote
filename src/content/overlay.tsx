@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { getFromStorage } from '../lib/storage';
+import { getFromStorage } from '../lib/utils';
 import HostTimeStatus from './HostTimeStatus';
 import React from 'react';
 

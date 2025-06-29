@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { getFromStorage, removeFromStorage } from '../lib/storage';
+import { getFromStorage, removeFromStorage } from '../lib/utils';
 
 // 🛠 Supabase config
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;

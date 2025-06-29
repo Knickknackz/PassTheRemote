@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { supabase } from '../lib/supabaseClient';
 import './rooms.css';
 import { fetchShowMetadata } from '../lib/showMetadata';
-import { getFromStorage, setInStorage } from '../lib/storage';
+import { getVideoUrl, getFromStorage, setInStorage } from '../lib/utils';
 
 const VITE_REACTR_EXTENSION_SECRET = import.meta.env.VITE_REACTR_EXTENSION_SECRET as string;
 
@@ -68,18 +68,6 @@ async function enrichRoomsData(data: Room[], liveMap: Map<string, any>): Promise
       };
     })
   );
-}
-
-function getVideoUrl(provider: string, video_id: string, current_time: number): string | null {
-  const t = Math.floor(current_time || 0);
-  switch (provider) {
-    case 'Netflix':
-      return `https://www.netflix.com${video_id}?t=${t}`;
-    case 'Crunchyroll':
-      return `https://www.crunchyroll.com${video_id}`;
-    default:
-      return null;
-  }
 }
 
 function formatViewers(count: number): string {

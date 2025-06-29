@@ -1,5 +1,5 @@
 // src/shared/VideoSyncController.ts
-import { getFromStorage, setInStorage} from '../lib/storage'; 
+import { getFromStorage, setInStorage} from '../lib/utils'; 
 
 export type Role = 'host' | 'audience';
 

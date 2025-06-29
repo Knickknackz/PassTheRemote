@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { supabase } from '../lib/supabaseClient';
-import { getFromStorage, setInStorage } from '../lib/storage'; 
+import { getFromStorage, setInStorage } from '../lib/utils'; 
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 

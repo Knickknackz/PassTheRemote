@@ -5,7 +5,7 @@ import { supabase } from '../src/lib/supabaseClient';
 import { nanoid } from 'nanoid';
 import styles from './popup.module.css';
 import { handleTwitchLogin } from '../src/lib/twitchAuth';
-import { getFromStorage, setInStorage, removeFromStorage } from '../src/lib/storage';
+import { getFromStorage, setInStorage, removeFromStorage, getVideoUrl } from '../src/lib/utils';
 
 function Popup() {
   const [streamOpacity, setStreamOpacity] = useState(1);
@@ -45,19 +45,6 @@ function Popup() {
     }
   };
     
-  function getVideoUrl(provider: string, video_id: string, current_time: number): string | null {
-    const t = Math.floor(current_time || 0);
-    console.log(video_id);
-    switch (provider) {
-      case 'netflix':
-        return `https://www.netflix.com${video_id}?t=${t}`;
-      case 'crunchyroll':
-        return `https://www.crunchyroll.com${video_id}?t=${t}`;
-      default:
-        return null;
-    }
-  }
-
   function getTimeWithDelta(current_time: number, updated_at: string): number{
     if(!current_time) return 0
     if(!updated_at) return current_time;
